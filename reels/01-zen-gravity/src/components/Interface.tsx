@@ -17,11 +17,22 @@ const Interface = ({ onVibeSubmit, setIsPlaying, vibeHistory }: InterfaceProps) 
     soundRef.current = new Howl({
       src: ['/audio/zen.mp3'],
       loop: true,
-      volume: 0.4
+      volume: 0.4,
+      html5: true // Better for mobile/browser autoplay policies
     });
     soundRef.current.play();
     setStarted(true);
     setIsPlaying(true);
+  };
+
+  // This is the "Better Job" fix: A dedicated, type-safe handler
+  const handleMute = () => {
+    const sound = soundRef.current;
+    if (sound) {
+      const nextMutedState = !muted;
+      sound.mute(nextMutedState);
+      setMuted(nextMutedState);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -41,17 +52,11 @@ const Interface = ({ onVibeSubmit, setIsPlaying, vibeHistory }: InterfaceProps) 
         
         {started && (
           <button 
-          onClick={() => {
-            const sound = soundRef.current;
-            if (sound) {
-              sound.mute(!muted);
-              setMuted(!muted);
-            }
-          }} 
-          className="pointer-events-auto text-[10px] text-white/50 hover:text-white tracking-widest uppercase transition-colors"
-        >
-          {muted ? "🔇 Unmute" : "🔊 Mute"}
-        </button>
+            onClick={handleMute} 
+            className="pointer-events-auto text-[10px] text-white/50 hover:text-white tracking-widest uppercase transition-colors"
+          >
+            {muted ? "🔇 Unmute" : "🔊 Mute"}
+          </button>
         )}
       </div>
 
@@ -59,7 +64,7 @@ const Interface = ({ onVibeSubmit, setIsPlaying, vibeHistory }: InterfaceProps) 
         <div className="flex flex-col items-center justify-center grow">
            <button 
              onClick={start} 
-             className="pointer-events-auto bg-white text-black px-12 py-5 rounded-full font-bold text-xs tracking-[0.3em] shadow-2xl active:scale-95 transition-all"
+             className="pointer-events-auto bg-white text-black px-12 py-5 rounded-full font-bold text-xs tracking-[0.3em] shadow-2xl active:scale-95 transition-all hover:bg-gray-100"
            >
             BREATHE IN
           </button>
@@ -76,7 +81,7 @@ const Interface = ({ onVibeSubmit, setIsPlaying, vibeHistory }: InterfaceProps) 
           />
           <div className="flex flex-wrap justify-center gap-2 max-w-lg">
             {vibeHistory.map((v, i) => (
-              <span key={i} className="text-[10px] text-white/30 bg-white/5 px-3 py-1 rounded-full border border-white/5">
+              <span key={i} className="text-[10px] text-white/30 bg-white/5 px-3 py-1 rounded-full border border-white/5 animate-in fade-in duration-500">
                 {v}
               </span>
             ))}
@@ -86,7 +91,10 @@ const Interface = ({ onVibeSubmit, setIsPlaying, vibeHistory }: InterfaceProps) 
 
       <div className="flex justify-between items-end text-[9px] text-white/20 uppercase tracking-[0.4em]">
         <div style={{ writingMode: 'vertical-rl' }} className="pb-4">M5 Agentic Logic</div>
-        <div className="hidden sm:block">Scroll for gravity • Mouse to attract</div>
+        <div className="hidden sm:block text-right">
+          Scroll for gravity<br/>
+          Mouse to attract
+        </div>
       </div>
     </div>
   );
