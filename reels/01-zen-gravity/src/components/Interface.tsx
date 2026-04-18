@@ -41,16 +41,17 @@ const Interface = ({ onVibeSubmit, setIsPlaying, vibeHistory }: InterfaceProps) 
         
         {started && (
           <button 
-            onClick={() => {
-              if (soundRef.current) {
-                soundRef.current.mute(!muted);
-                setMuted(!muted);
-              }
-            }} 
-            className="pointer-events-auto text-[10px] text-white/50 hover:text-white tracking-widest uppercase transition-colors"
-          >
-            {muted ? "🔇 Unmute" : "🔊 Mute"}
-          </button>
+          onClick={() => {
+            const sound = soundRef.current;
+            if (sound) {
+              sound.mute(!muted);
+              setMuted(!muted);
+            }
+          }} 
+          className="pointer-events-auto text-[10px] text-white/50 hover:text-white tracking-widest uppercase transition-colors"
+        >
+          {muted ? "🔇 Unmute" : "🔊 Mute"}
+        </button>
         )}
       </div>
 
