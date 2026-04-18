@@ -14,13 +14,20 @@ const Interface = ({ onVibeSubmit, setIsPlaying, vibeHistory }: InterfaceProps) 
   const soundRef = useRef<Howl | null>(null);
 
   const start = () => {
-    soundRef.current = new Howl({
+    // 1. Create the instance in a local variable first
+    const sound = new Howl({
       src: ['/audio/zen.mp3'],
       loop: true,
       volume: 0.4,
-      html5: true // Better for mobile/browser autoplay policies
+      html5: true
     });
-    soundRef.current.play();
+
+    // 2. Assign it to the ref
+    soundRef.current = sound;
+
+    // 3. Play the local variable (TS knows this can't be null)
+    sound.play();
+    
     setStarted(true);
     setIsPlaying(true);
   };
