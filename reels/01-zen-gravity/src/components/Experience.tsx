@@ -1,30 +1,21 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { useFrame } from "@react-three/fiber";
 import { Environment, ContactShadows } from "@react-three/drei";
 import * as THREE from "three";
 import Particles from "./Particles";
 
-const Experience = ({ vibe, isPlaying }: { vibe: string; isPlaying: boolean }) => {
+const Experience = ({ physics, isPlaying }: { physics: any; isPlaying: boolean }) => {
   const [scrollGravity, setScrollGravity] = useState(0.5);
 
-  const config = useMemo(() => {
-    const v = vibe.toLowerCase();
-    if (v.includes("fire") || v.includes("chaos")) 
-      return { color: "#ff4d00", emissive: "#ff0000", speed: 2.5, baseG: -1.2 };
-    if (v.includes("ice") || v.includes("cold") || v.includes("zen")) 
-      return { color: "#00f2ff", emissive: "#0066ff", speed: 0.3, baseG: 0.1 };
-    return { color: "#60a5fa", emissive: "#1d4ed8", speed: 1.0, baseG: 0.5 };
-  }, [vibe]);
-
   useFrame((state) => {
-    // This is the Glide Logic
     const targetZ = isPlaying ? 5.5 : 8;
-    state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, targetZ, 0.03);
+    state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, targetZ, 0.05);
 
-    // Central core breathing
-    const breathe = Math.sin(state.clock.elapsedTime * 1.5) * 0.05 + 1;
     const core = state.scene.getObjectByName("central-core");
-    if (core) core.scale.set(breathe, breathe, breathe);
+    if (core) {
+      const breathe = Math.sin(state.clock.elapsedTime * 1.5) * 0.05 + 1;
+      core.scale.set(breathe, breathe, breathe);
+    }
   });
 
   useEffect(() => {
@@ -41,9 +32,14 @@ const Experience = ({ vibe, isPlaying }: { vibe: string; isPlaying: boolean }) =
       <ambientLight intensity={0.5} />
       <mesh name="central-core">
         <sphereGeometry args={[0.4, 32, 32]} />
-        <meshStandardMaterial color={config.color} emissive={config.emissive} emissiveIntensity={12} toneMapped={false} />
+        <meshStandardMaterial 
+          color={physics.color} 
+          emissive={physics.emissive} 
+          emissiveIntensity={12} 
+          toneMapped={false} 
+        />
       </mesh>
-      <Particles gravity={(scrollGravity * config.speed) + config.baseG} color={config.color} />
+      <Particles gravity={(scrollGravity * physics.speed) + physics.baseG} color={physics.color} />
       <ContactShadows position={[0, -3.5, 0]} opacity={0.4} scale={20} blur={2.5} />
     </>
   );
