@@ -1,24 +1,23 @@
-// Vite requires 'import.meta.env' to access variables
-const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_KEY; 
+const OPENROUTER_API_KEY = import.meta.env.VITE_OPENROUTER_KEY;
 
 export const getVibePhysics = async (prompt: string) => {
   if (!OPENROUTER_API_KEY) {
-    console.error("API Key missing! Check your Vercel Env Variables.");
-    return { color: "#60a5fa", emissive: "#1d4ed8", speed: 1.0, baseG: 0.5, bloom: 1.5 };
+    console.error("Missing API Key");
+    return null;
   }
 
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-      "Content-Type": "application/json"
+      "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-3.1-flash-lite-preview", // 2026's fastest budget model
+      model: "google/gemini-3.1-flash-lite-preview",
       messages: [
         {
           role: "system",
-          content: "Return ONLY a JSON object: {color: string, emissive: string, speed: number, baseG: number, bloom: number}. Values should represent the 3D physics of the user's vibe."
+          content: "Return ONLY a JSON object: {color: string (hex), emissive: string (hex), speed: number (0.5-3.0), baseG: number (-1.5 to 3.0), bloom: number (1.0-2.5)}. No prose."
         },
         { role: "user", content: prompt }
       ],
