@@ -6,6 +6,7 @@ import { EffectComposer, Bloom, Noise, Vignette, ChromaticAberration } from '@re
 import Experience from './components/Experience';
 import Interface from './components/Interface';
 import { getVibePhysics } from './utils/ai-agent';
+import { useEffect } from 'react';
 
 function App() {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -23,6 +24,14 @@ function App() {
     const aiData = await getVibePhysics(newVibe);
     if (aiData) setPhysics(aiData);
   };
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sharedVibe = params.get('vibe');
+    if (sharedVibe) {
+      handleVibeChange(sharedVibe);
+    }
+  }, []);
 
   return (
     <main className="fixed inset-0 w-screen h-screen bg-black overflow-hidden font-sans">

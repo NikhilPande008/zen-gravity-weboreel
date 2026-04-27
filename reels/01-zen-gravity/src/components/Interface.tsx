@@ -12,6 +12,7 @@ const Interface = ({ onVibeSubmit, setIsPlaying, vibeHistory }: InterfaceProps) 
   const [muted, setMuted] = useState(false);
   const [input, setInput] = useState("");
   const soundRef = useRef<Howl | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const start = () => {
     // 1. Create the instance in a local variable first
@@ -27,7 +28,7 @@ const Interface = ({ onVibeSubmit, setIsPlaying, vibeHistory }: InterfaceProps) 
 
     // 3. Play the local variable (TS knows this can't be null)
     sound.play();
-    
+
     setStarted(true);
     setIsPlaying(true);
   };
@@ -39,6 +40,18 @@ const Interface = ({ onVibeSubmit, setIsPlaying, vibeHistory }: InterfaceProps) 
       sound.mute(!muted);
       setMuted(!muted);
     }
+  };
+
+  const handleShare = () => {
+    if (vibeHistory.length === 0) return;
+
+    const currentVibe = vibeHistory[0];
+    const url = new URL(window.location.href);
+    url.searchParams.set('vibe', currentVibe);
+
+    navigator.clipboard.writeText(url.toString());
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -55,32 +68,40 @@ const Interface = ({ onVibeSubmit, setIsPlaying, vibeHistory }: InterfaceProps) 
           <h2 className="text-[10px] uppercase tracking-[0.4em] font-bold opacity-40">Weboreel #01</h2>
           <h1 className="text-3xl font-extralight tracking-tighter leading-none">ZEN GRAVITY</h1>
         </div>
-        
+
         {started && (
-          <button 
-            onClick={handleMute} 
-            className="pointer-events-auto text-[10px] text-white/50 hover:text-white tracking-widest uppercase transition-colors"
-          >
-            {muted ? "🔇 Unmute" : "🔊 Mute"}
-          </button>
+          <div className="flex gap-4 pointer-events-auto">
+            <button
+              onClick={handleShare}
+              className="text-[10px] text-white/50 hover:text-white tracking-widest uppercase transition-colors"
+            >
+              {copied ? "✓ Link Copied" : "🔗 Share Vibe"}
+            </button>
+            <button
+              onClick={handleMute}
+              className="text-[10px] text-white/50 hover:text-white tracking-widest uppercase transition-colors"
+            >
+              {muted ? "🔇 Unmute" : "🔊 Mute"}
+            </button>
+          </div>
         )}
       </div>
 
       {!started ? (
         <div className="flex flex-col items-center justify-center grow">
-           <button 
-             onClick={start} 
-             className="pointer-events-auto bg-white text-black px-12 py-5 rounded-full font-bold text-xs tracking-[0.3em] shadow-2xl active:scale-95 transition-all hover:bg-gray-100"
-           >
+          <button
+            onClick={start}
+            className="pointer-events-auto bg-white text-black px-12 py-5 rounded-full font-bold text-xs tracking-[0.3em] shadow-2xl active:scale-95 transition-all hover:bg-gray-100"
+          >
             BREATHE IN
           </button>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-6 mb-12">
-          <input 
+        <div className="flex flex-col items-center gap-6 mb-12 px-4">
+          <input
             type="text"
             placeholder="Describe a vibe..."
-            className="pointer-events-auto bg-white/10 border border-white/20 text-white text-sm px-6 py-4 rounded-full w-full max-w-md backdrop-blur-xl outline-none focus:border-white/50 transition-all shadow-2xl"
+            className="pointer-events-auto bg-black/40 border border-white/30 text-white text-sm px-6 py-4 rounded-full w-full max-w-md backdrop-blur-2xl outline-none focus:border-white/60 focus:bg-black/60 transition-all shadow-[0_0_30px_rgba(0,0,0,0.5)]"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -98,7 +119,7 @@ const Interface = ({ onVibeSubmit, setIsPlaying, vibeHistory }: InterfaceProps) 
       <div className="flex justify-between items-end text-[9px] text-white/20 uppercase tracking-[0.4em]">
         <div style={{ writingMode: 'vertical-rl' }} className="pb-4">M5 Agentic Logic</div>
         <div className="hidden sm:block text-right">
-          Scroll for gravity<br/>
+          Scroll for gravity<br />
           Mouse to attract
         </div>
       </div>
