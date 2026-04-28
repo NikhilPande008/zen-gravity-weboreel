@@ -13,7 +13,7 @@ export default function Experience({ physics, chaos }: ExperienceProps) {
   const coreRef = useRef<THREE.Mesh>(null);
 
   // Breathing LFO (Low Frequency Oscillator)
-  useFrame((state, delta) => {
+  useFrame((state) => {
     if (coreRef.current) {
       const breathe = 1 + Math.sin(state.clock.elapsedTime * 1.2) * 0.05;
       const chaosImpact = 1 + (chaos * 1.5); // Multiplied impact
