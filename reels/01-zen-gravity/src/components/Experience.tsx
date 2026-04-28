@@ -11,20 +11,13 @@ interface ExperienceProps {
 
 export default function Experience({ physics, chaos }: ExperienceProps) {
   const coreRef = useRef<THREE.Mesh>(null);
-  
+
   // Breathing LFO (Low Frequency Oscillator)
-  useFrame(({ clock }) => {
+  useFrame((state, delta) => {
     if (coreRef.current) {
-      const breathe = 1 + Math.sin(clock.elapsedTime * 1.2) * 0.05;
-      const chaosScale = 1 + (chaos * 0.4);
-      coreRef.current.scale.setScalar(breathe * chaosScale);
-      
-      // Jitter during chaos
-      if (chaos > 0.5) {
-        coreRef.current.position.x = Math.sin(clock.getElapsedTime() * 20) * 0.02 * chaos;
-      } else {
-        coreRef.current.position.x = 0;
-      }
+      const breathe = 1 + Math.sin(state.clock.elapsedTime * 1.2) * 0.05;
+      const chaosImpact = 1 + (chaos * 1.5); // Multiplied impact
+      coreRef.current.scale.setScalar(breathe * chaosImpact);
     }
   });
 
@@ -33,10 +26,10 @@ export default function Experience({ physics, chaos }: ExperienceProps) {
       <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
       <ambientLight intensity={0.2} />
       <pointLight position={[10, 10, 10]} intensity={1} color={physics.color} />
-      
+
       <Float speed={2 * (1 + chaos)} rotationIntensity={1} floatIntensity={2}>
         <Sphere ref={coreRef} args={[1, 64, 64]}>
-          <meshStandardMaterial 
+          <meshStandardMaterial
             color={physics.color}
             emissive={physics.emissive}
             emissiveIntensity={2 + (chaos * 5)}

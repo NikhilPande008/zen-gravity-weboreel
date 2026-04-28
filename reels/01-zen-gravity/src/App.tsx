@@ -17,10 +17,17 @@ function App() {
   });
 
   // 1. Chaos Decay Logic
+  // App.tsx
   useEffect(() => {
     const timer = setInterval(() => {
-      setChaos((prev) => Math.max(0, prev - 0.02));
-      if (chaos < 0.1 && state === 'active') {
+      setChaos((prev) => {
+        // Faster decay: from 0.05 to 0.08
+        const next = Math.max(0, prev - 0.08);
+        return next;
+      });
+
+      // Looser check: if chaos is essentially gone, count it as "Stillness"
+      if (chaos < 0.2 && state === 'active') {
         setCalmTime((prev) => prev + 0.1);
       }
     }, 100);
@@ -61,7 +68,11 @@ function App() {
               <Experience physics={physics} chaos={chaos} state={state} />
             </Physics>
             <EffectComposer>
-              <Bloom intensity={physics.bloom + (chaos * 2)} luminanceThreshold={0.2} mipmapBlur />
+              <Bloom
+                intensity={Math.min(physics.bloom + (chaos * 2), 4.0)} // Clamp at 4.0 max
+                luminanceThreshold={0.2}
+                mipmapBlur
+              />
               <ChromaticAberration offset={[0.001 * chaos, 0.001 * chaos]} />
               <Noise opacity={0.04 + (chaos * 0.1)} />
               <Vignette eskil={false} offset={0.1} darkness={1.1} />
@@ -69,7 +80,7 @@ function App() {
           </Suspense>
         </Canvas>
       </div>
-      <Interface 
+      <Interface
         state={state}
         setState={setState}
         chaos={chaos}
