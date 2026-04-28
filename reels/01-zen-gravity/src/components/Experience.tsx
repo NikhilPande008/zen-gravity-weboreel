@@ -1,48 +1,60 @@
-import { useState, useEffect } from "react";
-import { useFrame } from "@react-three/fiber";
-import { Environment, ContactShadows } from "@react-three/drei";
-import * as THREE from "three";
-import Particles from "./Particles";
+import { useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
+import { Sphere, Float, Stars } from '@react-three/drei';
+import * as THREE from 'three';
 
-const Experience = ({ physics, isPlaying }: { physics: any; isPlaying: boolean }) => {
-  const [scrollGravity, setScrollGravity] = useState(0.5);
+interface ExperienceProps {
+  physics: any;
+  chaos: number;
+  state: string;
+}
 
-  useFrame((state) => {
-    const targetZ = isPlaying ? 5.5 : 8;
-    state.camera.position.z = THREE.MathUtils.lerp(state.camera.position.z, targetZ, 0.05);
-
-    const core = state.scene.getObjectByName("central-core");
-    if (core) {
-      const breathe = Math.sin(state.clock.elapsedTime * 1.5) * 0.05 + 1;
-      core.scale.set(breathe, breathe, breathe);
+export default function Experience({ physics, chaos }: ExperienceProps) {
+  const coreRef = useRef<THREE.Mesh>(null);
+  
+  // Breathing LFO (Low Frequency Oscillator)
+  useFrame(({ clock }) => {
+    if (coreRef.current) {
+      const breathe = 1 + Math.sin(clock.elapsedTime * 1.2) * 0.05;
+      const chaosScale = 1 + (chaos * 0.4);
+      coreRef.current.scale.setScalar(breathe * chaosScale);
+      
+      // Jitter during chaos
+      if (chaos > 0.5) {
+        coreRef.current.position.x = Math.sin(clock.getElapsedTime() * 20) * 0.02 * chaos;
+      } else {
+        coreRef.current.position.x = 0;
+      }
     }
   });
 
-  useEffect(() => {
-    const handleScroll = (e: WheelEvent) => {
-      setScrollGravity(prev => Math.max(-2, Math.min(2, prev + e.deltaY * 0.005)));
-    };
-    window.addEventListener("wheel", handleScroll);
-    return () => window.removeEventListener("wheel", handleScroll);
-  }, []);
-
   return (
     <>
-      <Environment preset="city" />
-      <ambientLight intensity={0.5} />
-      <mesh name="central-core">
-        <sphereGeometry args={[0.4, 32, 32]} />
-        <meshStandardMaterial 
-          color={physics.color} 
-          emissive={physics.emissive} 
-          emissiveIntensity={12} 
-          toneMapped={false} 
-        />
-      </mesh>
-      <Particles gravity={(scrollGravity * physics.speed) + physics.baseG} color={physics.color} />
-      <ContactShadows position={[0, -3.5, 0]} opacity={0.4} scale={20} blur={2.5} />
+      <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+      <ambientLight intensity={0.2} />
+      <pointLight position={[10, 10, 10]} intensity={1} color={physics.color} />
+      
+      <Float speed={2 * (1 + chaos)} rotationIntensity={1} floatIntensity={2}>
+        <Sphere ref={coreRef} args={[1, 64, 64]}>
+          <meshStandardMaterial 
+            color={physics.color}
+            emissive={physics.emissive}
+            emissiveIntensity={2 + (chaos * 5)}
+            toneMapped={false}
+          />
+        </Sphere>
+      </Float>
+
+      {/* Dynamic Obstacles (Mental Noise) spawned during chaos */}
+      {chaos > 0.6 && (
+        <group>
+          {[...Array(3)].map((_, i) => (
+            <Sphere key={i} position={[(i - 1) * 3, Math.sin(i), 0]} args={[0.2, 16, 16]}>
+              <meshBasicMaterial color="white" transparent opacity={0.2 * chaos} />
+            </Sphere>
+          ))}
+        </group>
+      )}
     </>
   );
-};
-
-export default Experience;
+}
