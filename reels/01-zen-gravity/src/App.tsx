@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Suspense, useRef } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
 import { EffectComposer, Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
@@ -28,7 +28,7 @@ function App() {
       volume: 0.5,
       html5: true
     });
-    return () => soundRef.current?.unload();
+    return () => {soundRef.current?.unload();}
   }, []);
 
   // Timer & Chaos Decay
