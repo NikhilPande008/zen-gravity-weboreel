@@ -1,32 +1,26 @@
-import { useState, useRef } from 'react';
-import { Howl } from 'howler';
-import type { SessionState } from '../App';
+import { useState, type MutableRefObject } from 'react';
+import { CURRENT_THEME } from '../theme';
+import type { AppState } from '../App';
 
 interface InterfaceProps {
-  state: SessionState;
-  setState: (s: SessionState) => void;
+  state: AppState;
+  onStart: () => void;
+  onVibeSubmit: (v: string) => void;
   chaos: number;
   calmTime: number;
-  onVibeSubmit: (v: string) => void;
+  progress: number;
+  soundRef: MutableRefObject<any>;
 }
 
-const Interface = ({ state, setState, chaos, calmTime, onVibeSubmit }: InterfaceProps) => {
+const Interface = ({ state, onStart, onVibeSubmit, chaos, calmTime, progress, soundRef }: InterfaceProps) => {
   const [input, setInput] = useState("");
-  const soundRef = useRef<Howl | null>(null);
   const [muted, setMuted] = useState(false);
   const [copied, setCopied] = useState(false);
-  const start = () => {
-    const sound = new Howl({ src: ['/audio/zen.mp3'], loop: true, volume: 0.4, html5: true });
-    soundRef.current = sound;
-    sound.play();
-    setState('active');
-  };
-  const handleMute = () => {
-    if (soundRef.current) {
-      const nextState = !muted;
-      soundRef.current.mute(nextState);
-      setMuted(nextState);
-    }
+  const toggleMute = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const nextMute = !muted;
+    soundRef.current?.mute(nextMute);
+    setMuted(nextMute);
   };
   const handleShare = () => {
     const url = new URL(window.location.href);
@@ -38,62 +32,38 @@ const Interface = ({ state, setState, chaos, calmTime, onVibeSubmit }: Interface
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const message = chaos > 0.7
-    ? "Your mind is a storm..."
-    : chaos > 0.2
-      ? "The noise of the day..."
-      : "Your mind behaves like this.";
-
   return (
-    <div className="fixed inset-0 pointer-events-none flex flex-col justify-between p-8 sm:p-12 z-50">
+    <div className="absolute inset-0 pointer-events-none z-50 flex flex-col justify-between p-8 sm:p-12">
       <div className="flex justify-between items-start">
-        <div className="text-white">
-          <h2 className="text-[10px] uppercase tracking-[0.4em] font-bold opacity-30">Weboreel #01</h2>
-          <h1 className="text-4xl font-extralight tracking-tighter">ZEN GRAVITY</h1>
+        <div className="text-white drop-shadow-lg">
+          <h1 className="text-3xl font-extralight tracking-tighter uppercase">{CURRENT_THEME.title}</h1>
         </div>
         <div className="flex flex-col items-end gap-3 pointer-events-auto">
-          <div className="flex gap-4 items-center">
             <button
               onClick={handleShare}
               className="text-[10px] text-white/50 hover:text-white tracking-widest uppercase transition-colors flex items-center gap-2"
             >
               {copied ? "✓ Copied" : "🔗 Share Vibe"}
             </button>
-            <button
-              onClick={handleMute}
-              className="text-[10px] text-white/50 hover:text-white tracking-widest uppercase transition-colors"
-            >
-              {muted ? "🔇 Unmute" : "🔊 Mute"}
-            </button>
-          </div>
-
-          {state === 'active' && (
-            <div className="text-right mt-2">
-              <p className="text-[10px] text-white/30 uppercase tracking-[0.3em]">Stillness Found</p>
-              <p className="text-3xl font-light text-white leading-none">{calmTime}s</p>
-            </div>
-          )}
+          <button onClick={toggleMute} className="text-[10px] text-white/50 uppercase tracking-widest">{muted ? "🔇 Unmute" : "🔊 Mute"}</button>
+          {state === 'active' && <div className="text-right text-white"><p className="text-[9px] opacity-30">STILLNESS</p><p className="text-2xl font-mono">{calmTime}s</p></div>}
         </div>
       </div>
 
-      {state === 'idle' ? (
-        <div className="flex flex-col items-center justify-center grow gap-4">
-          <button onClick={start} className="pointer-events-auto bg-white text-black px-10 py-4 rounded-full font-bold text-xs tracking-[0.3em] hover:scale-105 transition-all">
-            BREATHE IN
-          </button>
-          <p className="text-white/30 text-[9px] uppercase tracking-widest animate-pulse">Touch to enter</p>
+      {state === 'splash' ? (
+        <div className="flex flex-col items-center justify-center grow gap-6 text-center">
+          <p className="text-white/40 text-[11px] uppercase tracking-[0.4em] max-w-xs leading-relaxed">{CURRENT_THEME.purpose}</p>
+          <button onClick={onStart} className="pointer-events-auto bg-white text-black px-12 py-5 rounded-full font-bold text-[10px] tracking-[0.4em] hover:scale-105 transition-all">START SESSION</button>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-8 mb-10 text-center">
-          <p className="text-white text-sm font-light tracking-[0.2em] transition-opacity duration-1000 uppercase opacity-60">
-            {state === 'tuning' ? "AI is distilling stillness..." : message}
-          </p>
-
-          <div className="w-full max-w-md flex flex-col gap-4">
-            <input
-              type="text"
-              placeholder="Change the vibe..."
-              className="pointer-events-auto bg-black/40 border border-white/20 text-white text-sm px-8 py-5 rounded-full backdrop-blur-3xl outline-none focus:border-white/50 transition-all text-center"
+        <div className="flex flex-col items-center grow justify-center gap-6">
+          <p className="text-white text-[10px] tracking-[0.3em] uppercase opacity-40">{state === 'tuning' ? "Distilling Vibe..." : "The mind is a mirror"}</p>
+          
+          {/* THE INPUT TAG (Interactive Layer) */}
+          <div className="pointer-events-auto w-full max-w-xs">
+            <input 
+              className="w-full bg-white/5 border border-white/10 rounded-full px-6 py-3 text-[10px] text-white tracking-widest text-center focus:border-white/40 outline-none transition-all"
+              placeholder="Describe a new vibe..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && (onVibeSubmit(input), setInput(""))}
@@ -102,9 +72,14 @@ const Interface = ({ state, setState, chaos, calmTime, onVibeSubmit }: Interface
         </div>
       )}
 
-      <div className="flex justify-between items-end text-[9px] text-white/40 uppercase tracking-[0.4em] drop-shadow-md">
-        <div className="pb-2 bg-black/20 px-2 rounded">Interaction generates entropy</div>
-        <div className="text-right bg-black/20 px-2 rounded">Stillness restores peace</div>
+      <div className="w-full">
+        {state === 'active' && (
+          <div className="w-full h-[2px] bg-white/10 mb-8 overflow-hidden"><div className="h-full bg-white/60" style={{ width: `${progress}%` }} /></div>
+        )}
+        <div className="flex justify-between text-[8px] text-white/20 uppercase tracking-[0.4em]">
+          <div>Entropy {Math.floor(chaos * 100)}%</div>
+          <div>Zen Gravity Engine</div>
+        </div>
       </div>
     </div>
   );

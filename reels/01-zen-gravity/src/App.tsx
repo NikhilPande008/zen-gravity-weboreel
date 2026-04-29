@@ -1,94 +1,102 @@
-import { useState, Suspense, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Suspense, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
-import { EffectComposer, Bloom, Noise, Vignette, ChromaticAberration } from '@react-three/postprocessing';
+import { EffectComposer, Bloom, ChromaticAberration, Noise } from '@react-three/postprocessing';
+import { CURRENT_THEME } from './theme';
 import Experience from './components/Experience';
 import Interface from './components/Interface';
-import { getVibePhysics } from './utils/ai-agent';
+import Reflection from './components/Reflection';
+import { getVibePhysics } from './utils/ai-agent'; // Ensure this utility exists
+import { Howl } from 'howler';
 
-export type SessionState = 'idle' | 'tuning' | 'active' | 'reflection';
+export type AppState = 'splash' | 'active' | 'tuning' | 'reflection';
 
 function App() {
-  const [state, setState] = useState<SessionState>('idle');
+  const [state, setState] = useState<AppState>('splash');
   const [chaos, setChaos] = useState(0);
   const [calmTime, setCalmTime] = useState(0);
-  const [physics, setPhysics] = useState({
-    color: "#60a5fa", emissive: "#1d4ed8", speed: 1.0, baseG: 0, bloom: 1.5
-  });
+  const [timeLeft, setTimeLeft] = useState(45);
+  const [physics, setPhysics] = useState({ color: CURRENT_THEME.colors.primary, bloom: 1.5 });
 
-  // 1. Chaos Decay Logic
-  // App.tsx
+  const soundRef = useRef<Howl | null>(null);
+
+  // Initialize Audio
   useEffect(() => {
-    const timer = setInterval(() => {
-      setChaos((prev) => {
-        // Faster decay: from 0.05 to 0.08
-        const next = Math.max(0, prev - 0.08);
-        return next;
-      });
-
-      // Looser check: if chaos is essentially gone, count it as "Stillness"
-      if (chaos < 0.2 && state === 'active') {
-        setCalmTime((prev) => prev + 0.1);
-      }
-    }, 100);
-    return () => clearInterval(timer);
-  }, [chaos, state]);
-
-  // 2. Device Orientation (The Mobile Hook)
-  useEffect(() => {
-    const handleMotion = (e: DeviceMotionEvent) => {
-      const acc = e.accelerationIncludingGravity;
-      if (acc) {
-        const totalMotion = Math.abs(acc.x || 0) + Math.abs(acc.y || 0);
-        if (totalMotion > 15) setChaos((prev) => Math.min(1, prev + 0.2));
-      }
-    };
-    window.addEventListener('devicemotion', handleMotion);
-    return () => window.removeEventListener('devicemotion', handleMotion);
+    soundRef.current = new Howl({
+      src: [CURRENT_THEME.audioUrl],
+      loop: true,
+      volume: 0.5,
+      html5: true
+    });
+    return () => soundRef.current?.unload();
   }, []);
 
-  const handleVibeSubmit = async (vibe: string) => {
-    setState('tuning');
-    const aiData = await getVibePhysics(vibe);
-    if (aiData) setPhysics(aiData);
+  // Timer & Chaos Decay
+  useEffect(() => {
+    const loop = setInterval(() => {
+      setChaos((c) => Math.max(0, c - CURRENT_THEME.physics.decayRate));
+      if (state === 'active') {
+        if (chaos < 0.15) setCalmTime((t) => t + 0.1);
+        setTimeLeft((prev) => (prev <= 0.1 ? 0 : prev - 0.1));
+        if (timeLeft <= 0.1) setState('reflection');
+      }
+    }, 100);
+    return () => clearInterval(loop);
+  }, [chaos, state, timeLeft]);
+
+  const handleStart = () => {
+    soundRef.current?.play();
     setState('active');
   };
 
-  const handleInteraction = useCallback(() => {
-    if (state === 'active') setChaos((prev) => Math.min(1, prev + 0.05));
-  }, [state]);
+  const onVibeSubmit = async (vibe: string) => {
+    setState('tuning');
+    const aiData = await getVibePhysics(vibe);
+    console.log("AI Response:", aiData); // CHECK YOUR CONSOLE FOR THIS
+    if (aiData) {
+      setPhysics({ color: aiData.color, bloom: aiData.bloom });
+    }
+    setState('active');
+  };
 
   return (
-    <main className="fixed inset-0 bg-black overflow-hidden font-sans" onClick={handleInteraction}>
-      <div className="absolute inset-0 z-0">
-        <Canvas shadows camera={{ position: [0, 0, 8], fov: 35 }}>
-          <color attach="background" args={['#000000']} />
-          <Suspense fallback={null}>
-            <Physics gravity={[0, 0, 0]}>
-              <Experience physics={physics} chaos={chaos} state={state} />
-            </Physics>
-            <EffectComposer>
-              <Bloom
-                intensity={Math.min(physics.bloom + (chaos * 2), 4.0)} // Clamp at 4.0 max
-                luminanceThreshold={0.2}
-                mipmapBlur
-              />
-              <ChromaticAberration offset={[0.001 * chaos, 0.001 * chaos]} />
-              <Noise opacity={0.04 + (chaos * 0.1)} />
-              <Vignette eskil={false} offset={0.1} darkness={1.1} />
-            </EffectComposer>
-          </Suspense>
-        </Canvas>
-      </div>
+    <main className="fixed inset-0 bg-black touch-none overflow-hidden"
+      onPointerDown={() => state === 'active' && setChaos(c => Math.min(1, c + CURRENT_THEME.physics.chaosSensitivity))}>
+      <Canvas camera={{ position: [0, 0, 8] }}>
+        <color attach="background" args={[CURRENT_THEME.colors.background]} />
+        <Suspense fallback={null}>
+          <Physics gravity={[0, 0, 0]}>
+            <Experience
+              chaos={chaos}
+              theme={{
+                ...CURRENT_THEME,
+                colors: {
+                  ...CURRENT_THEME.colors,
+                  primary: physics.color
+                }
+              }}
+            />
+          </Physics>
+          <EffectComposer>
+            <Bloom intensity={physics.bloom + (chaos * 3)} mipmapBlur />
+            <ChromaticAberration offset={[0.002 * chaos, 0.002 * chaos]} />
+            <Noise opacity={0.05 + (chaos * 0.15)} />
+          </EffectComposer>
+        </Suspense>
+      </Canvas>
+
       <Interface
         state={state}
-        setState={setState}
+        onStart={handleStart}
+        onVibeSubmit={onVibeSubmit}
         chaos={chaos}
         calmTime={Math.floor(calmTime)}
-        onVibeSubmit={handleVibeSubmit}
+        progress={(timeLeft / 45) * 100}
+        soundRef={soundRef}
       />
+
+      {state === 'reflection' && <Reflection calmTime={calmTime} />}
     </main>
   );
 }
-
 export default App;
