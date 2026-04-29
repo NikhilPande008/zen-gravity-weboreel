@@ -17,8 +17,8 @@ function App() {
   const [calmTime, setCalmTime] = useState(0);
   const [timeLeft, setTimeLeft] = useState(45);
   const [physics, setPhysics] = useState({ color: CURRENT_THEME.colors.primary, bloom: 1.5 });
-
   const soundRef = useRef<Howl | null>(null);
+  const [tilt, setTilt] = useState({ x: 0, y: 0 });
 
   // Initialize Audio
   useEffect(() => {
@@ -44,7 +44,56 @@ function App() {
     return () => clearInterval(loop);
   }, [chaos, state, timeLeft]);
 
-  const handleStart = () => {
+  useEffect(() => {
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      if (state === 'active') {
+        // Gamma is left/right tilt (-90 to 90)
+        // Beta is front/back tilt (-180 to 180)
+        const tilt = Math.abs(e.gamma || 0) + Math.abs(e.beta || 0);
+        
+        // If the phone is tilted more than 20 degrees, increase entropy
+        if (tilt > 20) {
+          setChaos((c) => Math.min(1, c + 0.02)); 
+        }
+      }
+    };
+  
+    window.addEventListener('deviceorientation', handleOrientation);
+    return () => window.removeEventListener('deviceorientation', handleOrientation);
+  }, [state]);
+
+  useEffect(() => {
+    const handleAndroidMotion = (e: DeviceOrientationEvent) => {
+      if (state === 'active') {
+        const beta = Math.abs(e.beta || 0);
+        const gamma = Math.abs(e.gamma || 0);
+        setTilt({
+          x: (e.gamma || 0) / 45, 
+          y: (e.beta || 0) / 45
+        });
+        
+        if (beta > 15 || gamma > 15) {
+          const tiltIntensity = (beta + gamma) / 1000;
+          setChaos((c) => Math.min(1, c + tiltIntensity));
+        }
+      }
+    };
+  
+    window.addEventListener("deviceorientation", handleAndroidMotion, true);
+    return () => window.removeEventListener("deviceorientation", handleAndroidMotion);
+  }, [state]);
+
+  const handleStart = async() => {
+    if (typeof (DeviceMotionEvent as any).requestPermission === 'function') {
+      try {
+        const permission = await (DeviceMotionEvent as any).requestPermission();
+        if (permission !== 'granted') {
+          console.warn("Motion permission denied");
+        }
+      } catch (e) {
+        console.error("DeviceMotion permission error:", e);
+      }
+    }
     soundRef.current?.play();
     setState('active');
   };
@@ -68,6 +117,7 @@ function App() {
           <Physics gravity={[0, 0, 0]}>
             <Experience
               chaos={chaos}
+              tilt={tilt}
               theme={{
                 ...CURRENT_THEME,
                 colors: {
@@ -75,7 +125,7 @@ function App() {
                   primary: physics.color
                 }
               }}
-            />
+            />  
           </Physics>
           <EffectComposer>
             <Bloom intensity={physics.bloom + (chaos * 3)} mipmapBlur />

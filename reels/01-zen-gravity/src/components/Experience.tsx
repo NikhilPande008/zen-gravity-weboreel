@@ -6,20 +6,33 @@ import type { WeboreelTheme } from '../theme';
 
 interface ExperienceProps {
   chaos: number;
-  theme: WeboreelTheme; // Match what App.tsx is sending
+  theme: WeboreelTheme;
+  tilt: { x: number; y: number };
 }
 
-export default function Experience({ chaos, theme }: ExperienceProps) {
+export default function Experience({ chaos, theme, tilt }: ExperienceProps) {
   const coreRef = useRef<THREE.Mesh>(null);
   
   useFrame(({ clock }) => {
     if (coreRef.current) {
+      coreRef.current.position.x = THREE.MathUtils.lerp(
+        coreRef.current.position.x, 
+        tilt.x * 3, // Multiplier increases the distance it travels
+        0.1
+      );
+      coreRef.current.position.y = THREE.MathUtils.lerp(
+        coreRef.current.position.y, 
+        -tilt.y * 3, // Negative because Beta tilt is inverted
+        0.1
+      );
       // 1. Breathing LFO: Sin wave for steady expansion/contraction
       const breathe = 1 + Math.sin(clock.elapsedTime * 1.2) * 0.05;
       
       // 2. Chaos Scaling: Expand core as chaos increases
       const chaosScale = 1 + (chaos * 0.8);
       coreRef.current.scale.setScalar(breathe * chaosScale);
+      coreRef.current.position.x = THREE.MathUtils.lerp(coreRef.current.position.x, tilt.x * 2, 0.1);
+      coreRef.current.position.y = THREE.MathUtils.lerp(coreRef.current.position.y, -tilt.y * 2, 0.1);
       
       // 3. Jitter: High-frequency shake during high entropy
       if (chaos > 0.5) {
